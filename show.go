@@ -7,21 +7,29 @@ import (
 	"github.com/btcsuite/btcd/wire"
 )
 
-func showTx(msgTx *wire.MsgTx) string {
+const defaultLineSeparator = "====================================================================================="
+
+func showTx(msgTx *wire.MsgTx, humanReadableName string) string {
 	tmpl := `
-==============================================================================================================
+%v
+%v_BEGIN
 	Version:  %v
 	TxIn:     %v
 	TxOut:    %v
 	LockTime: %v
-==============================================================================================================
+%v_END
+%v
 	`
 	return fmt.Sprintf(
 		tmpl,
+		defaultLineSeparator,
+		humanReadableName,
 		msgTx.Version,
 		showTxIns(msgTx.TxIn),
 		showTxOuts(msgTx.TxOut),
 		msgTx.LockTime,
+		humanReadableName,
+		defaultLineSeparator,
 	)
 }
 
@@ -62,5 +70,5 @@ func showTxOut(txOut *wire.TxOut) string {
 	Value:    %v
 	PkScript: %v
 	`
-	return fmt.Sprintf(tmpl, txOut.Value, txOut.PkScript)
+	return fmt.Sprintf(tmpl, txOut.Value, hex.EncodeToString(txOut.PkScript))
 }

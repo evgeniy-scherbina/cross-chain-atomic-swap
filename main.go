@@ -45,10 +45,6 @@ func main() {
 		txHash, successPrivKey := sendHTLC(client, privKey, previousTxHash, previousTx)
 
 		rPreImage := []byte{0x61,0x62,0x63,0x64}
-		//fmt.Println(len(rPreImage))
-		//rawBytes := sha256.Sum256(rPreImage)
-		//fmt.Println(hex.EncodeToString(rawBytes[:]))
-		//return
 		htlcSuccess(client, txHash, rPreImage, successPrivKey, successPrivKey.PubKey().SerializeCompressed())
 	}
 }

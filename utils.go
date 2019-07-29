@@ -46,24 +46,80 @@ func makeHtlcScript(digest, timeoutPubkeyHash, successPubkeyHash []byte, timeout
 	builder.AddOp(txscript.OP_EQUALVERIFY)
 	builder.AddOp(txscript.OP_CHECKSIG)
 
-	fmt.Println("OP_IF")
-	fmt.Println("OP_HASH256")
-	fmt.Println("DIGEST", digest)
-	fmt.Println("OP_EQUALVERIFY")
-	fmt.Println("OP_DUP")
-	fmt.Println("OP_HASH160")
-	fmt.Println("SUCCESS_PUBKEY_HASH", successPubkeyHash)
-	fmt.Println("OP_ELSE")
-	fmt.Println("TIMEOUT", timeout)
-	fmt.Println("OP_CHECKLOCKTIMEVERIFY")
-	fmt.Println("OP_DROP")
-	fmt.Println("OP_DUP")
-	fmt.Println("OP_HASH160")
-	fmt.Println("TIMEOUT_PUBKEY_HASH", timeoutPubkeyHash)
-	fmt.Println("OP_ENDIF")
-	fmt.Println("OP_EQUALVERIFY")
-	fmt.Println("OP_CHECKSIG")
+	fmt.Println(showHtlcScript(digest, timeoutPubkeyHash, successPubkeyHash, timeout))
 	return builder.Script()
+}
+
+func showHtlcScript(digest, timeoutPubkeyHash, successPubkeyHash []byte, timeout int64) string {
+	name := "LOCKING_HTLC_SCRIPT"
+	tmpl := `
+%v
+%v: BEGIN
+	OP_IF
+	OP_HASH256
+	DIGEST: %v
+	OP_EQUALVERIFY
+	OP_DUP
+	OP_HASH160
+	SUCCESS_PUBKEY_HASH: %v
+	OP_ELSE
+	TIMEOUT: %v
+	OP_CHECKLOCKTIMEVERIFY
+	OP_DROP
+	OP_DUP
+	OP_HASH160
+	TIMEOUT_PUBKEY_HASH: %v
+	OP_ENDIF
+	OP_EQUALVERIFY
+	OP_CHECKSIG
+%v: END
+%v
+	`
+	return fmt.Sprintf(
+		tmpl,
+		defaultLineSeparator,
+		name,
+		hex.EncodeToString(digest),
+		hex.EncodeToString(successPubkeyHash),
+		timeout,
+		hex.EncodeToString(timeoutPubkeyHash),
+		name,
+		defaultLineSeparator,
+	)
+}
+
+func makeUnlockingHtlcScript(htlcSuccessInputScript, successPubKeyCompressed, rPreImage []byte) ([]byte, error) {
+	builder := txscript.NewScriptBuilder()
+	builder.AddData(htlcSuccessInputScript)
+	builder.AddData(successPubKeyCompressed)
+	builder.AddData(rPreImage)
+	builder.AddOp(txscript.OP_TRUE)
+	fmt.Println(showUnlockingHtlcScript(htlcSuccessInputScript, successPubKeyCompressed, rPreImage))
+	return builder.Script()
+}
+
+func showUnlockingHtlcScript(htlcSuccessInputScript, successPubKeyCompressed, rPreImage []byte) string {
+	name := "UNLOCKING_HTLC_SCRIPT"
+	tmpl := `
+%v
+%v: BEGIN
+	HTLC_SUCCESS_INPUT_SCRIPT: %v
+	SUCCESS_PUB_KEY_COMPRESSED: %v
+	R_PRE_IMAGE: %v
+	OP_TRUE
+%v: END
+%v
+	`
+	return fmt.Sprintf(
+		tmpl,
+		defaultLineSeparator,
+		name,
+		hex.EncodeToString(htlcSuccessInputScript),
+		hex.EncodeToString(successPubKeyCompressed),
+		hex.EncodeToString(rPreImage),
+		name,
+		defaultLineSeparator,
+	)
 }
 
 // Calculate the hash of hasher over buf.
@@ -102,9 +158,7 @@ func receiveMoney(client *rpcclient.Client) (*btcec.PrivateKey, *chainhash.Hash,
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("RECEIVE_MONEY_TRANSACTION: BEGIN")
-	fmt.Println(showTx(previousTx.MsgTx()))
-	fmt.Println("RECEIVE_MONEY_TRANSACTION: END")
+	fmt.Println(showTx(previousTx.MsgTx(), "RECEIVE_MONEY_TRANSACTION"))
 
 	if _, err := client.Generate(1); err != nil {
 		log.Fatal(err)
@@ -125,7 +179,7 @@ func sendHTLC(
 			foundIndex = index
 		}
 	}
-	fmt.Println("FOUND_INDEX", foundIndex)
+	fmt.Printf("DEBUG(FOUND_INDEX): %v\n", foundIndex)
 
 	digest, err := hex.DecodeString("88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589")
 	if err != nil {
@@ -181,9 +235,7 @@ func sendHTLC(
 	}
 	msgTx.TxIn[0].SignatureScript = signature
 
-	fmt.Println("HTLC_TRANSACTION: BEGIN")
-	fmt.Println(showTx(msgTx))
-	fmt.Println("HTLC_TRANSACTION: END")
+	fmt.Println(showTx(msgTx, "HTLC_TRANSACTION"))
 
 	txHash, err := client.SendRawTransaction(msgTx, true)
 	if err != nil {
@@ -203,21 +255,6 @@ func htlcSuccess(
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	//foundIndex := 0
-	//for index, output := range htlcTx.MsgTx().TxOut {
-	//	if output.Value == 10000000 {
-	//		foundIndex = index
-	//	}
-	//}
-	//fmt.Println("FOUND_INDEX", foundIndex)
-
-	//timeoutPrivKey, err := btcec.NewPrivateKey(btcec.S256())
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//timeoutPubkeyCompressed := timeoutPrivKey.PubKey().SerializeCompressed()
-	//timeoutPubkeyHash := hash160(timeoutPubkeyCompressed)
 
 	builder := txscript.NewScriptBuilder()
 	builder.AddOp(txscript.OP_RETURN)
@@ -254,73 +291,17 @@ func htlcSuccess(
 		successPrivKey,
 	)
 
-	builder = txscript.NewScriptBuilder()
-	builder.AddData(htlcSuccessInputScript)
-	builder.AddData(successPubKeyCompressed)
-	builder.AddData(rPreImage)
-	builder.AddOp(txscript.OP_TRUE)
-	fmt.Println("HTLC_SUCCESS_INPUT_SCRIPT", htlcSuccessInputScript)
-	fmt.Println("SUCCESS_PUB_KEY_COMPRESSED", successPubKeyCompressed)
-	fmt.Println("R_PRE_IMAGE", rPreImage)
-	fmt.Println("OP_TRUE")
-	script, err = builder.Script()
+	script, err = makeUnlockingHtlcScript(htlcSuccessInputScript, successPubKeyCompressed, rPreImage)
 	if err != nil {
 		log.Fatal(err)
 	}
 	successHtlcTx.TxIn[0].SignatureScript = script
 
-	fmt.Println("SUCCESS_HTLC_TRANSACTION: BEGIN")
-	fmt.Println(showTx(&successHtlcTx))
-	fmt.Println("SUCCESS_HTLC_TRANSACTION: END")
+	fmt.Println(showTx(&successHtlcTx, "SUCCESS_HTLC_TRANSACTION"))
 
-	//scriptPubKey []byte, tx *wire.MsgTx, txIdx int, inputAmount int64
-
-	fmt.Println("EXECUTE: BEGIN")
 	execute(htlcTx.MsgTx().TxOut[0].PkScript, &successHtlcTx, 0, 10000000)
-	fmt.Println("EXECUTE: END")
 
 	if _, err := client.SendRawTransaction(&successHtlcTx, true); err != nil {
 		log.Fatal(err)
 	}
 }
-
-//OP_IF
-//[HASHOP] <digest> OP_EQUALVERIFY OP_DUP OP_HASH160 <seller pubkey hash>
-//	OP_ELSE
-//<num> [TIMEOUTOP] OP_DROP OP_DUP OP_HASH160 <buyer pubkey hash>
-//	OP_ENDIF
-//OP_EQUALVERIFY
-//OP_CHECKSIG
-
-
-
-
-
-
-
-
-
-
-//HTLC_SUCCESS_INPUT_SCRIPT [48 68 2 32 49 213 157 28 13 11 168 74 175 23 214 177 211 126 156 239 97 183 88 147 201 19 119 184 125 162 112 196 138 179 142 61 2 32 104 22 84 232 76 57 215 207 1 237 217 169 72 249 138 252 7 246 3 132 48 219 103 76 114 15 65 56 60 71 26 204 1]
-//SUCCESS_PUB_KEY_COMPRESSED [2 109 5 239 223 102 229 6 227 62 252 13 115 174 33 2 166 191 173 93 228 100 223 170 197 173 221 116 168 247 157 70 137]
-//R_PRE_IMAGE [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-//OP_TRUE
-
-
-//OP_IF
-//OP_HASH256
-//DIGEST [40 137 173 170 213 129 250 232 138 106 26 231 243 51 93 222 96 191 234 242 150 58 26 61 193 193 197 170 45 234 236 133]
-//OP_EQUALVERIFY
-//OP_DUP
-//OP_HASH160
-//SUCCESS_PUBKEY_HASH [155 219 250 138 14 247 170 202 8 218 16 175 185 238 184 224 51 85 224 31]
-//OP_ELSE
-//TIMEOUT 0
-//OP_CHECKLOCKTIMEVERIFY
-//OP_DROP
-//OP_DUP
-//OP_HASH160
-//TIMEOUT_PUBKEY_HASH [107 53 105 169 230 115 45 41 99 159 197 121 197 204 170 117 107 183 26 166]
-//OP_ENDIF
-//OP_EQUALVERIFY
-//OP_CHECKSIG
