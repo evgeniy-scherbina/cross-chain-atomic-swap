@@ -39,3 +39,22 @@ func (btcd *Btcd) Cmd() *exec.Cmd {
 func (btcd *Btcd) Stop() {
 	_ = btcd.Cmd().Process.Signal(os.Interrupt)
 }
+
+func (btcd *Btcd) Btcctl(args ...string) (string, error) {
+	cmd := exec.Command(
+		"btcctl",
+		append([]string{
+			"--simnet",
+			fmt.Sprintf("--rpcserver=%v", btcwalletRPCListen),
+			fmt.Sprintf("--rpcuser=%v", btcdRPCUser),
+			fmt.Sprintf("--rpcpass=%v", btcdRPCPass),
+			fmt.Sprintf("--rpccert=%v", btcdRPCCert),
+			fmt.Sprintf("-C=%v", btcdDataDir),
+		}, args...)...
+	)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}

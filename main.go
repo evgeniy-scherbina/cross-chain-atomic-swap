@@ -67,7 +67,8 @@ func main() {
 	}
 	time.Sleep(time.Second * 8)
 
-	addr := btcctl()
+	addr, err := btcd.Btcctl("getnewaddress")
+	checkErr(err)
 	addr = strings.TrimSpace(addr)
 	fmt.Printf("Mining address %v\n", addr)
 
