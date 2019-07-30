@@ -2,8 +2,19 @@ package simnet
 
 import (
 	"fmt"
+	"github.com/btcsuite/btcd/rpcclient"
+	"log"
 	"os"
 	"os/exec"
+	"strings"
+	"time"
+)
+
+const (
+	DefaultTimeout               = time.Second * 5
+	TimeoutForProcessShutdowning = time.Second * 2
+
+	BlocksForSegWitActivation = 400
 )
 
 type Btcd struct {
@@ -40,6 +51,18 @@ func (btcd *Btcd) Stop() {
 	_ = btcd.Cmd().Process.Signal(os.Interrupt)
 }
 
+func (btcd *Btcd) Restart(miningAddr string) (*Btcd, error) {
+	btcd.Stop()
+	time.Sleep(TimeoutForProcessShutdowning)
+
+	btcd, err := LaunchBtcd(miningAddr)
+	if err != nil {
+		return nil, err
+	}
+	time.Sleep(DefaultTimeout)
+	return btcd, nil
+}
+
 func (btcd *Btcd) Btcctl(args ...string) (string, error) {
 	cmd := exec.Command(
 		"btcctl",
@@ -50,11 +73,37 @@ func (btcd *Btcd) Btcctl(args ...string) (string, error) {
 			fmt.Sprintf("--rpcpass=%v", btcdRPCPass),
 			fmt.Sprintf("--rpccert=%v", btcdRPCCert),
 			fmt.Sprintf("-C=%v", btcdDataDir),
-		}, args...)...
+		}, args...)...,
 	)
 	output, err := cmd.Output()
 	if err != nil {
 		return "", err
 	}
 	return string(output), nil
+}
+
+func (btcd *Btcd) ActivateSegWit(client *rpcclient.Client) error {
+	// Get the current block count.
+	blockCount, err := client.GetBlockCount()
+	if err != nil {
+		return err
+	}
+	log.Printf("Block count: %d", blockCount)
+
+	if blockCount < BlocksForSegWitActivation {
+		if _, err := client.Generate(BlocksForSegWitActivation); err != nil {
+			return err
+		}
+		time.Sleep(DefaultTimeout)
+	}
+	return nil
+}
+
+func (btcd *Btcd) GetNewAddress() (string, error) {
+	addr, err := btcd.Btcctl("getnewaddress")
+	if err != nil {
+		return "", err
+	}
+	addr = strings.TrimSpace(addr)
+	return addr, nil
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/evgeniy-scherbina/cross-chain-atomic-swap/simnet"
 	"io/ioutil"
 	"log"
-	"strings"
 	"time"
 )
 
@@ -17,8 +16,6 @@ func checkErr(err error) {
 	}
 }
 
-const defaultTimeout = time.Second * 5
-
 func launchSimnetAndWait() (*simnet.Btcd, *simnet.Btcwallet) {
 	btcd, err := simnet.LaunchBtcd("ShZTsTAgSQkmqZZHnU2mDKVCXP6h26Sm46")
 	checkErr(err)
@@ -26,7 +23,7 @@ func launchSimnetAndWait() (*simnet.Btcd, *simnet.Btcwallet) {
 	btcwallet, err := simnet.LaunchBtcwallet()
 	checkErr(err)
 
-	time.Sleep(defaultTimeout)
+	time.Sleep(simnet.DefaultTimeout)
 	return btcd, btcwallet
 }
 
@@ -55,36 +52,19 @@ func main() {
 	}
 	defer client.Shutdown()
 
-	// Get the current block count.
-	blockCount, err := client.GetBlockCount()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Block count: %d", blockCount)
-
 	if err := client.WalletPassphrase("11111111", 3600 * 10); err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(time.Second * 8)
 
-	addr, err := btcd.Btcctl("getnewaddress")
+	miningAddr, err := btcd.GetNewAddress()
 	checkErr(err)
-	addr = strings.TrimSpace(addr)
-	fmt.Printf("Mining address %v\n", addr)
+	fmt.Printf("Mining address %v\n", miningAddr)
 
-	btcd.Stop()
-	time.Sleep(time.Second * 2)
-	btcd, err = simnet.LaunchBtcd(addr)
+	btcd, err = btcd.Restart(miningAddr)
 	checkErr(err)
-	time.Sleep(time.Second * 5)
 
-	if blockCount < 400 {
-		if _, err := client.Generate(400); err != nil {
-			log.Fatal(err)
-		}
-		time.Sleep(time.Second * 8)
-	}
-
+	checkErr(btcd.ActivateSegWit(client))
 
 	createHtlc := flag.Bool("create_htlc", false, "")
 	flag.Parse()
