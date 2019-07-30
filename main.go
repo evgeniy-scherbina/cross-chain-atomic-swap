@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/evgeniy-scherbina/cross-chain-atomic-swap/simnet"
 	"log"
 	"time"
+
+	"github.com/evgeniy-scherbina/cross-chain-atomic-swap/simnet"
 )
 
 func checkErr(err error) {
