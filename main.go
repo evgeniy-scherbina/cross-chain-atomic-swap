@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/btcsuite/btcd/rpcclient"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"time"
-
-	"github.com/btcsuite/btcd/rpcclient"
 )
 
 func main() {
@@ -48,27 +48,22 @@ func main() {
 	if err := client.WalletPassphrase("11111111", 3600 * 10); err != nil {
 		log.Fatal(err)
 	}
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 8)
 
 	addr := btcctl()
 	addr = strings.TrimSpace(addr)
-	fmt.Printf("@%v@", addr)
+	fmt.Printf("Mining address %v\n", addr)
 
-	_ = btcd.Process.Kill()
+	_ = btcd.Process.Signal(os.Interrupt)
 	time.Sleep(time.Second * 2)
-	cmd := launchBtcd(addr)
-	_ = cmd
+	btcd = launchBtcd(addr)
 	time.Sleep(time.Second * 5)
-	//fmt.Println(cmd.Wait())
-
-	fmt.Println("HERE")
 
 	if _, err := client.Generate(400); err != nil {
 		log.Fatal(err)
 	}
 	time.Sleep(time.Second * 8)
 
-	fmt.Println("HERE")
 
 	createHtlc := flag.Bool("create_htlc", false, "")
 	flag.Parse()
@@ -80,6 +75,8 @@ func main() {
 		htlcSuccess(client, txHash, rPreImage, successPrivKey, successPrivKey.PubKey().SerializeCompressed())
 	}
 
-	_ = btcd.Process.Kill()
-	_ = btcwallet.Process.Kill()
+	_ = btcd.Process.Signal(os.Interrupt)
+	_ = btcwallet.Process.Signal(os.Interrupt)
+
+	time.Sleep(time.Second * 2)
 }
