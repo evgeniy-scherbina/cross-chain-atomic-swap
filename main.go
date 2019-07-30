@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/evgeniy-scherbina/cross-chain-atomic-swap/simnet"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,8 +13,8 @@ import (
 )
 
 func main() {
-	btcd := launchBtcd("ShZTsTAgSQkmqZZHnU2mDKVCXP6h26Sm46")
-	btcwallet := launchBtcwallet()
+	btcd := simnet.LaunchBtcd("ShZTsTAgSQkmqZZHnU2mDKVCXP6h26Sm46")
+	btcwallet := simnet.LaunchBtcwallet()
 	time.Sleep(time.Second * 5)
 
 	rawCert, err := ioutil.ReadFile("data/rpc.cert")
@@ -56,13 +57,15 @@ func main() {
 
 	_ = btcd.Process.Signal(os.Interrupt)
 	time.Sleep(time.Second * 2)
-	btcd = launchBtcd(addr)
+	btcd = simnet.LaunchBtcd(addr)
 	time.Sleep(time.Second * 5)
 
-	if _, err := client.Generate(400); err != nil {
-		log.Fatal(err)
+	if blockCount < 400 {
+		if _, err := client.Generate(400); err != nil {
+			log.Fatal(err)
+		}
+		time.Sleep(time.Second * 8)
 	}
-	time.Sleep(time.Second * 8)
 
 
 	createHtlc := flag.Bool("create_htlc", false, "")
