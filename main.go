@@ -35,28 +35,6 @@ func shutdownSimnetAndWait(btcd *simnet.Btcd, btcwallet *simnet.Btcwallet) {
 func main() {
 	btcd, btcwallet := launchSimnetAndWait()
 
-	//rawCert, err := ioutil.ReadFile("data/rpc.cert")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//// Connect to local bitcoin core RPC server using HTTP POST mode.
-	//connCfg := &rpcclient.ConnConfig{
-	//	Host:         "localhost:18554",
-	//	User:         "devuser",
-	//	Pass:         "devpass",
-	//	HTTPPostMode: true,  // Bitcoin core only supports HTTP POST mode
-	//	DisableTLS:   false, // Bitcoin core does not provide TLS by default
-	//	Certificates: rawCert,
-	//}
-	//// Notice the notification parameter is nil since notifications are
-	//// not supported in HTTP POST mode.
-	//client, err := rpcclient.New(connCfg, nil)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//defer client.Shutdown()
-
 	if err := btcd.RPCClient().WalletPassphrase("11111111", 3600 * 10); err != nil {
 		log.Fatal(err)
 	}
