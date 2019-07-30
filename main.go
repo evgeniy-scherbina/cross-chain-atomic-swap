@@ -35,10 +35,8 @@ func shutdownSimnetAndWait(btcd *simnet.Btcd, btcwallet *simnet.Btcwallet) {
 func main() {
 	btcd, btcwallet := launchSimnetAndWait()
 
-	if err := btcd.RPCClient().WalletPassphrase("11111111", 3600 * 10); err != nil {
-		log.Fatal(err)
-	}
-	time.Sleep(time.Second * 8)
+	err := btcd.UnlockWallet()
+	checkErr(err)
 
 	miningAddr, err := btcd.GetNewAddress()
 	checkErr(err)
