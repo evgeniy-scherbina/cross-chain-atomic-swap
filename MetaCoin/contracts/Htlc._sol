@@ -1,0 +1,17 @@
+pragma solidity >=0.4.25 <0.6.0;
+
+//contract Htlc {
+//    constructor() public {
+//
+//    }
+//}
+
+//contract Empty {
+//    constructor() public {}
+//
+//    function () external payable {}
+//
+//    function give_away(address payable receiver) public {
+//        receiver.transfer(1);
+//    }
+//}
