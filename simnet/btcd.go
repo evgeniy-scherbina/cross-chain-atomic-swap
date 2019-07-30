@@ -3,6 +3,7 @@ package simnet
 import (
 	"fmt"
 	"github.com/btcsuite/btcd/rpcclient"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -19,6 +20,7 @@ const (
 
 type Btcd struct {
 	cmd *exec.Cmd
+	rpcClient *rpcclient.Client
 }
 
 func LaunchBtcd(miningAddr string) (*Btcd, error) {
@@ -38,13 +40,21 @@ func LaunchBtcd(miningAddr string) (*Btcd, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return &Btcd{
+	btcd := &Btcd{
 		cmd: cmd,
-	}, nil
+	}
+	if err := btcd.enableRPCClient(); err != nil {
+		return nil, err
+	}
+	return btcd, nil
 }
 
 func (btcd *Btcd) Cmd() *exec.Cmd {
 	return btcd.cmd
+}
+
+func (btcd *Btcd) RPCClient() *rpcclient.Client {
+	return btcd.rpcClient
 }
 
 func (btcd *Btcd) Stop() {
@@ -106,4 +116,31 @@ func (btcd *Btcd) GetNewAddress() (string, error) {
 	}
 	addr = strings.TrimSpace(addr)
 	return addr, nil
+}
+
+func (btcd *Btcd) enableRPCClient() error {
+	rawCert, err := ioutil.ReadFile("data/rpc.cert")
+	if err != nil {
+		return err
+	}
+
+	// Connect to local bitcoin core RPC server using HTTP POST mode.
+	connCfg := &rpcclient.ConnConfig{
+		Host:         "localhost:18554",
+		User:         "devuser",
+		Pass:         "devpass",
+		HTTPPostMode: true,  // Bitcoin core only supports HTTP POST mode
+		DisableTLS:   false, // Bitcoin core does not provide TLS by default
+		Certificates: rawCert,
+	}
+
+	// Notice the notification parameter is nil since notifications are
+	// not supported in HTTP POST mode.
+	client, err := rpcclient.New(connCfg, nil)
+	if err != nil {
+		return err
+	}
+
+	btcd.rpcClient = client
+	return nil
 }
