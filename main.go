@@ -12,9 +12,19 @@ import (
 	"time"
 )
 
+func checkErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
-	btcd := simnet.LaunchBtcd("ShZTsTAgSQkmqZZHnU2mDKVCXP6h26Sm46")
-	btcwallet := simnet.LaunchBtcwallet()
+	btcd, err := simnet.LaunchBtcd("ShZTsTAgSQkmqZZHnU2mDKVCXP6h26Sm46")
+	checkErr(err)
+
+	btcwallet, err := simnet.LaunchBtcwallet()
+	checkErr(err)
+
 	time.Sleep(time.Second * 5)
 
 	rawCert, err := ioutil.ReadFile("data/rpc.cert")
@@ -55,9 +65,10 @@ func main() {
 	addr = strings.TrimSpace(addr)
 	fmt.Printf("Mining address %v\n", addr)
 
-	_ = btcd.Process.Signal(os.Interrupt)
+	_ = btcd.Cmd().Process.Signal(os.Interrupt)
 	time.Sleep(time.Second * 2)
-	btcd = simnet.LaunchBtcd(addr)
+	btcd, err = simnet.LaunchBtcd(addr)
+	checkErr(err)
 	time.Sleep(time.Second * 5)
 
 	if blockCount < 400 {
@@ -78,8 +89,8 @@ func main() {
 		htlcSuccess(client, txHash, rPreImage, successPrivKey, successPrivKey.PubKey().SerializeCompressed())
 	}
 
-	_ = btcd.Process.Signal(os.Interrupt)
-	_ = btcwallet.Process.Signal(os.Interrupt)
+	_ = btcd.Cmd().Process.Signal(os.Interrupt)
+	_ = btcwallet.Cmd().Process.Signal(os.Interrupt)
 
 	time.Sleep(time.Second * 2)
 }

@@ -1,27 +1,37 @@
 package simnet
 
 import (
-	"log"
+	"fmt"
 	"os/exec"
 )
 
-func LaunchBtcwallet() *exec.Cmd {
+type btcwallet struct {
+	cmd *exec.Cmd
+}
+
+func LaunchBtcwallet() (*btcwallet, error) {
 	cmd := exec.Command(
 		"btcwallet",
 		"--simnet",
-		"--appdata=btcwallet",
-		"--rpcconnect=127.0.0.1:18556",
-		"--btcdusername=devuser",
-		"--btcdpassword=devpass",
-		"--rpclisten=127.0.0.1:18554",
-		"--username=devuser",
-		"--password=devpass",
-		"--rpccert=data/rpc.cert",
-		"--rpckey=data/rpc.key",
-		"--cafile=data/rpc.cert",
+		fmt.Sprintf("--appdata=%v", btcwalletDataDir),
+		fmt.Sprintf("--rpcconnect=%v", btcwalletRPCConnect),
+		fmt.Sprintf("--btcdusername=%v", btcdRPCUser),
+		fmt.Sprintf("--btcdpassword=%v", btcdRPCPass),
+		fmt.Sprintf("--rpclisten=%v", btcwalletRPCListen),
+		fmt.Sprintf("--username=%v", btcdRPCUser),
+		fmt.Sprintf("--password=%v", btcdRPCPass),
+		fmt.Sprintf("--rpccert=%v", btcdRPCCert),
+		fmt.Sprintf("--rpckey=%v", btcdRPCKey),
+		fmt.Sprintf("--cafile=%v", btcdRPCCert),
 	)
 	if err := cmd.Start(); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return cmd
+	return &btcwallet{
+		cmd: cmd,
+	}, nil
+}
+
+func (btcwallet *btcwallet) Cmd() *exec.Cmd {
+	return btcwallet.cmd
 }
