@@ -27,6 +27,13 @@ func launchSimnetAndWait() (*simnet.Btcd, *simnet.Btcwallet) {
 	return btcd, btcwallet
 }
 
+func shutdownSimnetAndWait(btcd *simnet.Btcd, btcwallet *simnet.Btcwallet) {
+	btcd.Stop()
+	btcwallet.Stop()
+
+	time.Sleep(simnet.TimeoutForProcessShutdowning)
+}
+
 func main() {
 	btcd, btcwallet := launchSimnetAndWait()
 
@@ -76,8 +83,5 @@ func main() {
 		htlcSuccess(client, txHash, rPreImage, successPrivKey, successPrivKey.PubKey().SerializeCompressed())
 	}
 
-	btcd.Stop()
-	btcwallet.Stop()
-
-	time.Sleep(time.Second * 2)
+	shutdownSimnetAndWait(btcd, btcwallet)
 }
