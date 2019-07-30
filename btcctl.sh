@@ -6,4 +6,5 @@ btcctl \
     --rpcuser=devuser \
     --rpcpass=devpass \
     --rpccert=data/rpc.cert \
+    -C=data \
     $@
