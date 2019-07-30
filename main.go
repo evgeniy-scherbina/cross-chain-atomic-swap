@@ -18,14 +18,21 @@ func checkErr(err error) {
 	}
 }
 
-func main() {
+const defaultTimeout = time.Second * 5
+
+func launchSimnetAndWait() (*simnet.Btcd, *simnet.Btcwallet) {
 	btcd, err := simnet.LaunchBtcd("ShZTsTAgSQkmqZZHnU2mDKVCXP6h26Sm46")
 	checkErr(err)
 
 	btcwallet, err := simnet.LaunchBtcwallet()
 	checkErr(err)
 
-	time.Sleep(time.Second * 5)
+	time.Sleep(defaultTimeout)
+	return btcd, btcwallet
+}
+
+func main() {
+	btcd, btcwallet := launchSimnetAndWait()
 
 	rawCert, err := ioutil.ReadFile("data/rpc.cert")
 	if err != nil {

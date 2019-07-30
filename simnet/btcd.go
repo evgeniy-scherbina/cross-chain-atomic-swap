@@ -5,11 +5,11 @@ import (
 	"os/exec"
 )
 
-type btcd struct {
+type Btcd struct {
 	cmd *exec.Cmd
 }
 
-func LaunchBtcd(miningAddr string) (*btcd, error) {
+func LaunchBtcd(miningAddr string) (*Btcd, error) {
 	cmd := exec.Command(
 		"btcd",
 		"--simnet",
@@ -26,11 +26,11 @@ func LaunchBtcd(miningAddr string) (*btcd, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return &btcd{
+	return &Btcd{
 		cmd: cmd,
 	}, nil
 }
 
-func (btcd *btcd) Cmd() *exec.Cmd {
+func (btcd *Btcd) Cmd() *exec.Cmd {
 	return btcd.cmd
 }

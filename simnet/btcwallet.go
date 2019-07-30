@@ -5,11 +5,11 @@ import (
 	"os/exec"
 )
 
-type btcwallet struct {
+type Btcwallet struct {
 	cmd *exec.Cmd
 }
 
-func LaunchBtcwallet() (*btcwallet, error) {
+func LaunchBtcwallet() (*Btcwallet, error) {
 	cmd := exec.Command(
 		"btcwallet",
 		"--simnet",
@@ -27,11 +27,11 @@ func LaunchBtcwallet() (*btcwallet, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return &btcwallet{
+	return &Btcwallet{
 		cmd: cmd,
 	}, nil
 }
 
-func (btcwallet *btcwallet) Cmd() *exec.Cmd {
+func (btcwallet *Btcwallet) Cmd() *exec.Cmd {
 	return btcwallet.cmd
 }
