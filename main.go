@@ -7,7 +7,6 @@ import (
 	"github.com/evgeniy-scherbina/cross-chain-atomic-swap/simnet"
 	"io/ioutil"
 	"log"
-	"os"
 	"strings"
 	"time"
 )
@@ -72,7 +71,7 @@ func main() {
 	addr = strings.TrimSpace(addr)
 	fmt.Printf("Mining address %v\n", addr)
 
-	_ = btcd.Cmd().Process.Signal(os.Interrupt)
+	btcd.Stop()
 	time.Sleep(time.Second * 2)
 	btcd, err = simnet.LaunchBtcd(addr)
 	checkErr(err)
@@ -96,8 +95,8 @@ func main() {
 		htlcSuccess(client, txHash, rPreImage, successPrivKey, successPrivKey.PubKey().SerializeCompressed())
 	}
 
-	_ = btcd.Cmd().Process.Signal(os.Interrupt)
-	_ = btcwallet.Cmd().Process.Signal(os.Interrupt)
+	btcd.Stop()
+	btcwallet.Stop()
 
 	time.Sleep(time.Second * 2)
 }

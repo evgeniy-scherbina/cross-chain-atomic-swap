@@ -2,6 +2,7 @@ package simnet
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -34,4 +35,8 @@ func LaunchBtcwallet() (*Btcwallet, error) {
 
 func (btcwallet *Btcwallet) Cmd() *exec.Cmd {
 	return btcwallet.cmd
+}
+
+func (btcwallet *Btcwallet) Stop() {
+	_ = btcwallet.Cmd().Process.Signal(os.Interrupt)
 }

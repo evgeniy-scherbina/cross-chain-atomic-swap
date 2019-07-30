@@ -2,6 +2,7 @@ package simnet
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -33,4 +34,8 @@ func LaunchBtcd(miningAddr string) (*Btcd, error) {
 
 func (btcd *Btcd) Cmd() *exec.Cmd {
 	return btcd.cmd
+}
+
+func (btcd *Btcd) Stop() {
+	_ = btcd.Cmd().Process.Signal(os.Interrupt)
 }
